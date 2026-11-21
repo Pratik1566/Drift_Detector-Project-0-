@@ -21,10 +21,10 @@ from security_evaluator import parse_security_file, evaluate_security_baseline
 from explain import explain
 from ui import (BRAND, CSS, FOOTER, baseline_table, chip, empty, empty_clean, empty_state, esc, features,
                 finding_chips, fmt_date, hero, raw_json, ready_line, result_head, rich, ring,
-                risk_badge, status_badge, step_head, time_ago, trend, type_badge, verdict)
+                risk_badge, session_pill, status_badge, step_head, time_ago, trend, type_badge, verdict)
 
 st.set_page_config(page_title="Drift · Configuration comparison", page_icon="🛡️", layout="wide",
-                   initial_sidebar_state="expanded")
+                   initial_sidebar_state="collapsed")
 st.markdown(f"<style>{CSS}</style>", unsafe_allow_html=True)
 
 ss = st.session_state
@@ -142,7 +142,6 @@ def run_comparison(cur_name, cur_bytes, base_name=None, base_bytes=None):
     go("findings")
 
 
-
 def do_compare():
     uploads = ss.get("up_curs") or []
 
@@ -193,7 +192,8 @@ def do_compare():
             "name": ", ".join(uploaded.name for uploaded in uploads),
             "kind": "Security Assessment",
             "base_label": "Built-in 106-rule security baseline",
-"last_scan": datetime.now(),            "mode": "security",
+            "last_scan": datetime.now(),
+            "mode": "security",
             "baseline": {},
             "current": {},
             "security_assessment": assessment,
@@ -207,7 +207,6 @@ def do_compare():
 
     except Exception as exc:
         ss.error = f"Security assessment could not be completed: {exc}"
-
 
 
 def do_sample():
@@ -230,7 +229,7 @@ def do_sample():
             "name": sample_path.name,
             "kind": "Security Assessment",
             "base_label": "Built-in 106-rule security baseline",
-           "last_scan": datetime.now(),
+            "last_scan": datetime.now(),
             "mode": "security",
             "baseline": {},
             "current": {},
@@ -245,7 +244,6 @@ def do_sample():
 
     except Exception as exc:
         ss.error = f"Sample assessment could not be completed: {exc}"
-
 
 
 def do_security_scan():
@@ -295,7 +293,6 @@ def table(prefix: str, widths: list, headers: list, rows: list):
                             H(cell)
 
 
-
 def review_btn(fid: str, ctx: str):
     def _draw():
         st.button("Review", key=f"rev_{ctx}_{fid}", on_click=open_review, args=(fid,))
@@ -314,16 +311,14 @@ def need_run(title: str, msg: str) -> bool:
 
 
 # ================================================================= top navigation
-
-# ================================================================= sidebar navigation
 active = ss.page
 
 dyn = (
     f".st-key-nav_{active} button {{"
-    "background:var(--alt)!important;"
-    "color:var(--ink)!important;"
-    "font-weight:650!important;"
-    "border-color:var(--line)!important;"
+    "background:var(--raised)!important;"
+    "color:var(--accent-cyan)!important;"
+    "font-weight:600!important;"
+    "border-color:rgba(70,237,224,0.32)!important;"
     "}"
 )
 
@@ -331,68 +326,34 @@ if PENDING:
     dyn += (
         f'.st-key-nav_remediation button::after {{'
         f'content:"{PENDING}";'
-        'margin-left:8px;'
+        'margin-left:7px;'
         'background:var(--accent);'
-        'color:#fff;'
+        'color:#061410;'
         'border-radius:999px;'
-        'font-size:.7rem;'
-        'font-weight:600;'
-        'padding:1px 7px;'
+        'font-size:.66rem;'
+        'font-weight:700;'
+        'padding:1px 6px;'
         '}'
     )
 
 st.markdown(f"<style>{dyn}</style>", unsafe_allow_html=True)
 
-with st.sidebar:
-    st.markdown(BRAND, unsafe_allow_html=True)
-
-    st.markdown(
-        '<div class="sidebar-label">WORKSPACE</div>',
-        unsafe_allow_html=True,
-    )
-
-    for key, text in NAV:
-        st.button(
-            text,
-            key=f"nav_{key}",
-            on_click=go,
-            args=(key,),
-            use_container_width=True,
-        )
-
-    st.divider()
-
-    st.markdown(
-        '<div class="sidebar-label">CURRENT SESSION</div>',
-        unsafe_allow_html=True,
-    )
-
-    if ss.run:
-        st.markdown(
-            f'<div class="sidebar-session">'
-            f'<div class="session-name">{esc(ss.run["name"])}</div>'
-            f'<div class="session-time">{time_ago(ss.run["last_scan"])}</div>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
-    else:
-        st.markdown(
-            '<div class="sidebar-session">'
-            '<div class="session-name">No active comparison</div>'
-            '<div class="session-time">Upload a configuration to begin</div>'
-            '</div>',
-            unsafe_allow_html=True,
-        )
-
-    st.markdown(
-        '<div class="sidebar-footer">DRIFT DETECTOR · CONFIGURATION SECURITY</div>',
-        unsafe_allow_html=True,
-    )
+with st.container(key="topnav"):
+    nav_cols = st.columns([1.8, 1.1, 1.35, 1.1, 1.35, 1.05, 2.4], vertical_alignment="center")
+    nav_cols[0].markdown(BRAND, unsafe_allow_html=True)
+    for col, (key, text) in zip(nav_cols[1:6], NAV):
+        with col:
+            st.button(
+                text,
+                key=f"nav_{key}",
+                on_click=go,
+                args=(key,),
+                use_container_width=True,
+            )
+    nav_cols[6].markdown(session_pill(ss.run), unsafe_allow_html=True)
 
 
 # ================================================================= pages
-
-
 def page_compare():
     H(hero())
 
@@ -504,11 +465,9 @@ def page_compare():
     H(features())
 
 
-
-
 def page_security_scan():
-    H('<div class="res-head"><div class="eyebrow">Built-in security assessment</div>'
-      '<h1 style="font-family:inherit">Security Scan</h1>'
+    H('<div class="res-head"><div class="eyebrow"><i></i>BUILT-IN SECURITY ASSESSMENT</div>'
+      '<h1 style="font-family:var(--display)">Security Scan</h1>'
       '<p class="sub muted" style="margin-top:8px">Upload configuration files from the same server. '
       'The scanner evaluates them against the built-in 106-rule security baseline.</p></div>')
 
@@ -613,17 +572,16 @@ def page_security_scan():
 def page_findings():
     if need_run("No results yet", "Upload a configuration on the Compare page and your findings will appear here."):
         return
-   
+
     s = A[0]
 
     # Dedicated view for the built-in 106-rule security assessment.
-    # The existing drift findings view below remains unchanged.
     if s.get("mode") == "security":
         assessment = s["security_assessment"]
         counts = assessment.get("counts", {})
         results = assessment.get("results", [])
 
-        h1, h2 = st.columns([5, 1.2], vertical_alignment="bottom")
+        h1, h2 = st.columns([5, 1.3], vertical_alignment="bottom")
         h1.markdown(
             result_head(
                 s["name"],
@@ -711,16 +669,16 @@ def page_findings():
 
         return
 
-    h1, h2 = st.columns([5, 1.2], vertical_alignment="bottom")
+    h1, h2 = st.columns([5, 1.3], vertical_alignment="bottom")
 
     h1.markdown(result_head(s["name"], s["kind"], s["base_label"], fmt_date(s["last_scan"])), unsafe_allow_html=True)
     h2.button("New comparison", key="new_cmp", on_click=go, args=("compare",), use_container_width=True)
 
-    ca, cb = st.columns([1, 2.3], gap="large")
+    ca, cb = st.columns([1, 2.2], gap="large")
     with ca:
         with st.container(key="card_ring"):
             H('<div class="center"><div class="card-title">Security posture</div>' + ring(s["score"]) +
-              '<p class="formula">100 − 15 per High − 7 per Medium − 2 per Low</p></div>')
+              '<p class="formula">100 &minus; 15 High &minus; 7 Medium &minus; 2 Low</p></div>')
     with cb:
         with st.container(key="card_verdict"):
             H(verdict(s["findings"], len(s["baseline"])))
@@ -738,8 +696,6 @@ def page_findings():
                 st.write(", ".join(f"`{k}`" for k in s["not_covered"]))
         st.write("")
 
-    # Informational section: current settings that do not exist in the uploaded baseline.
-    # These are not classified as vulnerabilities; they are simply not comparable.
     if s["mode"] == "custom":
         current_only = [(k, value) for k, value in s["current"].items() if k not in s["baseline"]]
         if current_only:
@@ -786,7 +742,7 @@ def page_findings():
             rows.append([f'{esc(label(k))}<span class="key">{esc(k)}</span>',
                          chip(s["baseline"].get(k), "", k in s["baseline"]),
                          chip(s["current"].get(k), "t-" + typ if f else "", k in s["current"]),
-                         type_badge(typ), risk_badge(f["risk"]) if f else '<span class="muted">—</span>',
+                         type_badge(typ), risk_badge(f["risk"]) if f else '<span class="muted">&mdash;</span>',
                          status_badge(dstatus(f["id"])) if f else "",
                          review_btn(f["id"], "ex") if f else ""])
         if rows:
@@ -855,17 +811,17 @@ def page_findings():
     with t_raw:
         r1, r2 = st.columns(2)
         base_title = "baseline" if s["mode"] == "custom" else "standard baseline"
-        r1.markdown(f'<div class="code-title">{base_title} <span class="muted">· approved</span></div>' +
+        r1.markdown(f'<div class="code-title">{base_title} <span class="muted">&middot; approved</span></div>' +
                     raw_json(s["baseline"], s["findings"]), unsafe_allow_html=True)
-        r2.markdown(f'<div class="code-title">{esc(s["name"])} <span class="muted">· observed</span></div>' +
+        r2.markdown(f'<div class="code-title">{esc(s["name"])} <span class="muted">&middot; observed</span></div>' +
                     raw_json(s["current"], s["findings"]), unsafe_allow_html=True)
         H('<p class="hint">Highlighted lines differ from the baseline. SSH files are shown as normalised settings.</p>')
 
 
 def page_remediation():
-    H('<div class="res-head"><div class="eyebrow">Remediation</div><h1 style="font-family:inherit">Review proposed fixes</h1>'
+    H('<div class="res-head"><div class="eyebrow"><i></i>REMEDIATION</div><h1 style="font-family:var(--display)">Review proposed fixes</h1>'
       '<p class="sub muted" style="margin-top:8px">Approving records your decision only. Nothing is changed on any server.</p></div>')
-    
+
     if need_run("Nothing to review yet", "Once a comparison finds drift, proposed fixes will be listed here."):
         return
 
@@ -876,8 +832,6 @@ def page_remediation():
             "available for custom-baseline drift comparisons."
         )
         return
-
-    n = {"Pending": 0, "Approved": 0, "Rejected": 0}
 
     n = {"Pending": 0, "Approved": 0, "Rejected": 0}
     for f in T["all"]:
@@ -897,7 +851,7 @@ def page_remediation():
     out = []
     for f in rows:
         d = ss.decisions.get(f["id"], {})
-        out.append([f'{esc(label(f["setting"]))}<span class="key">{esc(f_expected(f))} → {esc(f_actual(f))}</span>',
+        out.append([f'{esc(label(f["setting"]))}<span class="key">{esc(f_expected(f))} &rarr; {esc(f_actual(f))}</span>',
                     risk_badge(f["risk"]), status_badge(dstatus(f["id"])), esc(d.get("by", "—")),
                     fmt_date(d["at"]) if d.get("at") else "—",
                     f'<span class="muted">{esc(d.get("note") or "—")}</span>', review_btn(f["id"], "rem")])
@@ -905,9 +859,9 @@ def page_remediation():
 
 
 def print_report_html() -> str:
-    parts = [f'<div class="print-report"><h1>Configuration Drift Report</h1><p>Generated {datetime.now():%d %b %Y, %I:%M %p} · '
+    parts = [f'<div class="print-report"><h1>Configuration Drift Report</h1><p>Generated {datetime.now():%d %b %Y, %I:%M %p} &middot; '
              f'{T["total"]} drifts (High {T["c"]["High"]}, Medium {T["c"]["Medium"]}, Low {T["c"]["Low"]}) '
-             f'· posture {T["posture"]}/100</p>']
+             f'&middot; posture {T["posture"]}/100</p>']
     for s in A:
         parts.append(f'<h2>{esc(s["name"])} vs {esc(s["base_label"])}</h2>')
         if s["findings"]:
@@ -922,12 +876,11 @@ def print_report_html() -> str:
 
 
 def page_reports():
-    H('<div class="res-head"><div class="eyebrow">Reports</div><h1 style="font-family:inherit">Export and history</h1>'
+    H('<div class="res-head"><div class="eyebrow"><i></i>REPORTS</div><h1 style="font-family:var(--display)">Export and history</h1>'
       '<p class="sub muted" style="margin-top:8px">Download the current findings and review earlier comparisons from this session.</p></div>')
     if need_run("No reports yet", "Run a comparison first, then export it here as JSON, CSV or PDF."):
         return
-    
-    
+
     if ss.run.get("mode") == "security":
         import csv
         import io
@@ -1199,7 +1152,6 @@ def page_reports():
 
         return
 
-
     with st.container(key="card_download"):
         H('<div class="card-title" style="margin:0">Download report</div>')
         st.caption("Includes every finding, its risk, and your approval decisions.")
@@ -1249,10 +1201,10 @@ def review_dialog(fid: str):
       f'<code>{esc(f["setting"])}</code></div>'
       f'<div class="badges">{risk_badge(f["risk"])}{type_badge(f["type"])}{status_badge(dstatus(fid))}</div>'
       '<div class="sec" style="margin-top:0">Evidence<span class="tag tag-rule">Rule-based</span></div>'
-      f'<div class="evidence"><div class="box"><div class="lbl">Expected (baseline)</div>{e_chip}</div><div class="arr">→</div>'
+      f'<div class="evidence"><div class="box"><div class="lbl">Expected (baseline)</div>{e_chip}</div><div class="arr">&rarr;</div>'
       f'<div class="box"><div class="lbl">Actual (observed)</div>{a_chip}</div></div>'
       '<div class="sec">Before / after fix</div>'
-      f'<div class="evidence"><div class="box"><div class="lbl">Now</div>{a_chip}</div><div class="arr">→</div>'
+      f'<div class="evidence"><div class="box"><div class="lbl">Now</div>{a_chip}</div><div class="arr">&rarr;</div>'
       f'<div class="box"><div class="lbl">After fix</div>{after}</div></div>'
       '<p class="hint">Proposed state only. Nothing is changed on the server.</p>'
       f'<div class="sec">Explanation<span class="tag tag-ai">{esc(exp["source"])}</span></div>'
@@ -1273,7 +1225,7 @@ def review_dialog(fid: str):
     else:
         note = f'<p style="margin-top:8px">“{esc(d["note"])}”</p>' if d.get("note") else ""
         H(f'<div class="sec" style="margin-top:0">Your decision</div><div class="decided">{status_badge(d["status"])} '
-          f'by <b>{esc(d["by"])}</b> · {fmt_date(d["at"])}{note}</div>')
+          f'by <b>{esc(d["by"])}</b> &middot; {fmt_date(d["at"])}{note}</div>')
         if st.button("Reopen", key=f"ro_{fid}"):
             decide(fid, "Pending")
 
@@ -1291,4 +1243,3 @@ H(FOOTER)
 rid = ss.pop("review_id", None)
 if rid:
     review_dialog(rid)
- 

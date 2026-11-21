@@ -1,3 +1,4 @@
 streamlit>=1.50
 pytest
 google-genai>=3.6.1
+reportlab
